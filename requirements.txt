@@ -1,5 +1,23 @@
 streamlit>=1.32.0
 google-generativeai>=0.3.2
 pandas>=2.2.0
-beautifulsoup4
+
+# Core packages
+streamlit
 langchain>=0.1.0
+langchain_community>=0.0.20
+
+# Vector store and embeddings
+faiss-cpu
+tiktoken
+openai
+
+# Web scraping / HTML parsing
+beautifulsoup4
+requests
+
+# Environment management (optional but helpful)
+python-dotenv
+
+# Text preprocessing (if needed)
+nltk
