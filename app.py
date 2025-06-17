@@ -25,7 +25,7 @@ if url:
             st.markdown("---")
             cols = st.columns([2, 3])
             with cols[0]:
-                st.image(img["src"], caption=f"Image #{idx + 1}", use_column_width=True)
+                st.image(img["src"], caption=f"Image #{idx + 1}", use_container_width=True)
 
             with cols[1]:
                 st.write(f"**Current Alt Text:** {img['alt'] or '❌ Missing'}")
