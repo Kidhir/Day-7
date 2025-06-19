@@ -1,28 +1,30 @@
 # agents/image_scanner.py
+from langchain.agents import tool
 from bs4 import BeautifulSoup
+from urllib.parse import urljoin
 import requests
+from state import GraphState
 
-def scan_images_from_url(url):
-    resp = requests.get(url)
-    soup = BeautifulSoup(resp.text, 'html.parser')
-    images = soup.find_all('img')
+@tool
+def scan_images(state: GraphState) -> GraphState:
+    """Scans a webpage and extracts image URLs into state."""
+    try:
+        response = requests.get(state.url, timeout=10)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.content, "html.parser")
+        image_tags = soup.find_all("img")
 
-    result = []
-    for img in images:
-        alt = img.get('alt', '').strip()
-        status = "Missing" if not alt else "Generic" if len(alt.split()) <= 2 else "Good"
+        image_urls = []
+        for tag in image_tags:
+            src = tag.get("src")
+            if not src:
+                continue
+            full_url = urljoin(state.url, src)
+            image_urls.append(full_url)
 
-        # NEW: extract context from parent
-        context = ""
-        parent = img.find_parent()
-        if parent:
-            context = parent.get_text(strip=True)
+        state.image_urls = image_urls[:15]  # Limit to 15
+    except Exception as e:
+        state.image_urls = []
+        state.error = str(e)
 
-        result.append({
-            'src': img.get('src'),
-            'alt': alt,
-            'status': status,
-            'context': context  # include the surrounding context for further processing
-        })
-
-    return result
+    return state
