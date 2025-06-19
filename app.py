@@ -5,11 +5,11 @@ from urllib.parse import urljoin
 from PIL import Image
 from io import BytesIO
 
-st.title("Robust Image Viewer (Safe for Streamlit Cloud)")
+st.title("Safe Web Image Viewer")
 
 url = st.text_input("Enter a webpage URL:", "https://www.tate.org.uk/art/artworks")
 
-def load_and_validate_image(img_url: str) -> Image.Image | None:
+def load_and_validate_image(img_url: str):
     try:
         resp = requests.get(img_url, timeout=5)
         if resp.status_code != 200:
@@ -20,9 +20,12 @@ def load_and_validate_image(img_url: str) -> Image.Image | None:
             return None
 
         img_bytes = BytesIO(resp.content)
-        image = Image.open(img_bytes)
-        image.verify()
-        return Image.open(BytesIO(resp.content))
+        img = Image.open(img_bytes)
+        img.verify()
+
+        # Convert to RGB (safe for Streamlit)
+        img = Image.open(BytesIO(resp.content)).convert("RGB")
+        return img
     except Exception:
         return None
 
