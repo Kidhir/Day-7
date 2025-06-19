@@ -28,13 +28,15 @@ if st.button("Fetch Images"):
                 image_url = urljoin(url, src)
                 try:
                     img_response = requests.get(image_url, timeout=5)
-                    if img_response.status_code == 200 and img_response.headers["Content-Type"].startswith("image/"):
+                    if img_response.status_code == 200 and img_response.headers.get("Content-Type", "").startswith("image/"):
                         image_data = BytesIO(img_response.content)
                         try:
                             image = Image.open(image_data)
+                            image.verify()  # ✅ Validate image
+                            image = Image.open(BytesIO(img_response.content))  # Re-open after verify
                             st.image(image, caption=f"Image #{idx + 1}", use_container_width=True)
-                        except UnidentifiedImageError:
-                            st.warning(f"Image #{idx + 1} could not be identified as a valid image format.")
+                        except (UnidentifiedImageError, Exception) as e:
+                            st.warning(f"Invalid image format for #{idx + 1}: {e}")
                 except Exception as e:
                     st.warning(f"Error loading image #{idx + 1}: {e}")
     except Exception as e:
