@@ -2,13 +2,29 @@ import streamlit as st
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
-from PIL import Image, UnidentifiedImageError
+from PIL import Image
 from io import BytesIO
 
-st.title("Generic Image Viewer")
+st.title("Robust Image Viewer (Safe for Streamlit Cloud)")
 
-# Get URL input from user
 url = st.text_input("Enter a webpage URL:", "https://www.tate.org.uk/art/artworks")
+
+def load_and_validate_image(img_url: str) -> Image.Image | None:
+    try:
+        resp = requests.get(img_url, timeout=5)
+        if resp.status_code != 200:
+            return None
+
+        content_type = resp.headers.get("Content-Type", "")
+        if not content_type.startswith("image/") or "svg" in content_type.lower():
+            return None
+
+        img_bytes = BytesIO(resp.content)
+        image = Image.open(img_bytes)
+        image.verify()
+        return Image.open(BytesIO(resp.content))
+    except Exception:
+        return None
 
 if st.button("Fetch Images"):
     try:
@@ -20,24 +36,17 @@ if st.button("Fetch Images"):
         if not image_tags:
             st.info("No images found.")
         else:
-            for idx, tag in enumerate(image_tags[:15]):  # limit to 15 images
+            for idx, tag in enumerate(image_tags[:15]):
                 src = tag.get("src")
                 if not src:
                     continue
 
                 image_url = urljoin(url, src)
-                try:
-                    img_response = requests.get(image_url, timeout=5)
-                    if img_response.status_code == 200 and img_response.headers.get("Content-Type", "").startswith("image/"):
-                        image_data = BytesIO(img_response.content)
-                        try:
-                            image = Image.open(image_data)
-                            image.verify()  # ✅ Validate image
-                            image = Image.open(BytesIO(img_response.content))  # Re-open after verify
-                            st.image(image, caption=f"Image #{idx + 1}", use_container_width=True)
-                        except (UnidentifiedImageError, Exception) as e:
-                            st.warning(f"Invalid image format for #{idx + 1}: {e}")
-                except Exception as e:
-                    st.warning(f"Error loading image #{idx + 1}: {e}")
+                image = load_and_validate_image(image_url)
+
+                if image:
+                    st.image(image, caption=f"Image #{idx + 1}", use_container_width=True)
+                else:
+                    st.warning(f"Skipped invalid image #{idx + 1}")
     except Exception as e:
         st.error(f"Failed to load page: {e}")
